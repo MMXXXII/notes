@@ -313,38 +313,49 @@ public class MainWindow extends JFrame {
                 messagePanel.setLayout(new FlowLayout(FlowLayout.CENTER));
                 notesPanel.add(messagePanel);
             } else {
-                int columns = 2; // Количество столбцов
-                int rows = (int) Math.ceil((double) notes.size() / columns); // Количество строк
-
-                JPanel gridPanel = new JPanel(new GridLayout(rows, columns, 10, 10)); // Сетка из карточек
+                // Используем GridBagLayout для размещения карточек по 2 на строке
+                JPanel gridPanel = new JPanel();
+                gridPanel.setLayout(new GridBagLayout());
                 gridPanel.setBackground(Color.WHITE);
+                GridBagConstraints gbc = new GridBagConstraints();
 
-                for (Note note : notes) {
+                // Установим фиксированную ширину и высоту карточки
+                int cardWidth = 730;
+                int cardHeight = 200;
+
+                for (int i = 0; i < notes.size(); i++) {
+                    Note note = notes.get(i);
                     JPanel noteCard = new JPanel(new BorderLayout(5, 5));
                     noteCard.setBackground(new Color(250, 250, 250));
                     noteCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Курсор для всей области карточки
-                    noteCard.setBorder(BorderFactory.createCompoundBorder(
-                            new LineBorder(new Color(220, 220, 220), 1, false),
-                            new EmptyBorder(10, 10, 10, 10)
-                    ));
-
-                    // Ограничиваем размер карточки, чтобы она не растягивалась
-                    noteCard.setPreferredSize(new Dimension(250, 300));  // Размер карточки
-                    noteCard.setMaximumSize(new Dimension(250, 300));   // Максимальный размер
-                    noteCard.setMinimumSize(new Dimension(250, 300));   // Минимальный размер
-
                     noteCard.addMouseListener(new MouseAdapter() {
                         @Override
                         public void mouseClicked(MouseEvent e) {
-                            openNote(note); // Открываем содержимое заметки вместо редактора
+                            openNote(note); // Открываем содержимое заметки
                         }
                     });
 
-                    // Создаем компоненты для карточки
+                    // Установим фиксированную ширину и высоту карточки
+                    noteCard.setPreferredSize(new Dimension(cardWidth, cardHeight));  // Установим фиксированную высоту и ширину
+                    noteCard.setMaximumSize(new Dimension(cardWidth, cardHeight)); // Максимальная размерность
+                    noteCard.setMinimumSize(new Dimension(cardWidth, cardHeight)); // Минимальная размерность
+
+                    // Для первой карточки добавляем отступ слева
+                    if (i == 0) {
+                        noteCard.setBorder(BorderFactory.createCompoundBorder(
+                                new LineBorder(new Color(220, 220, 220), 1, false),
+                                new EmptyBorder(10, 20, 10, 10) // Добавляем отступ слева для первой карточки
+                        ));
+                    } else {
+                        noteCard.setBorder(BorderFactory.createCompoundBorder(
+                                new LineBorder(new Color(220, 220, 220), 1, false),
+                                new EmptyBorder(10, 10, 10, 10) // Для остальных карточек обычные отступы
+                        ));
+                    }
+
                     JLabel titleLabel = new JLabel(note.getTitle());
                     titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
                     titleLabel.setForeground(Color.DARK_GRAY);
-                    titleLabel.setPreferredSize(new Dimension(240, 40)); // Ограничение по размеру для заголовка
                     noteCard.add(titleLabel, BorderLayout.NORTH);
 
                     JTextArea contentArea = new JTextArea(note.getContent());
@@ -355,7 +366,6 @@ public class MainWindow extends JFrame {
                     contentArea.setForeground(Color.DARK_GRAY);
                     contentArea.setBackground(new Color(250, 250, 250));
                     contentArea.setBorder(null);
-                    contentArea.setPreferredSize(new Dimension(240, 150)); // Размер для текстовой области
                     noteCard.add(contentArea, BorderLayout.CENTER);
 
                     JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
@@ -369,7 +379,17 @@ public class MainWindow extends JFrame {
                     buttonPanel.add(deleteButton);
                     noteCard.add(buttonPanel, BorderLayout.SOUTH);
 
-                    gridPanel.add(noteCard);
+                    // Вычисляем строку и колонку для GridBagLayout
+                    int row = i / 2; // Каждая вторая карточка будет переносить на новую строку
+                    int col = i % 2; // Каждую карточку размещаем по очереди в 2 столбца
+
+                    gbc.gridx = col; // Колонка
+                    gbc.gridy = row; // Строка
+                    gbc.insets = new Insets(10, 10, 10, 10); // Отступы вокруг карточки
+
+                    gridPanel.add(noteCard, gbc); // Добавляем карточку в сетку
+                    noteCard.setFocusable(false);  // Убираем фокус с карточки заметки
+                    contentArea.setFocusable(false);  // Убираем фокус с текста
                 }
 
                 notesPanel.setLayout(new BorderLayout());
@@ -378,11 +398,11 @@ public class MainWindow extends JFrame {
 
             notesPanel.revalidate();
             notesPanel.repaint();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 
 
 
@@ -426,26 +446,10 @@ public class MainWindow extends JFrame {
             noteFrame.dispose();  // Закрытие окна редактора
         });
 
-        // Создаём меню с троеточием
-        JMenuBar menuBar = new JMenuBar();
-        JMenu optionsMenu = new JMenu("⋮");  // Троеточие как меню
-        JMenuItem deleteMenuItem = new JMenuItem("Удалить запись");
-        deleteMenuItem.addActionListener(e -> {
-            int confirmation = JOptionPane.showConfirmDialog(null,
-                    "Вы уверены, что хотите удалить эту запись?",
-                    "Удалить запись", JOptionPane.YES_NO_OPTION);
-            if (confirmation == JOptionPane.YES_OPTION) {
-                deleteNote(note); // Реализуйте метод для удаления заметки
-                JFrame noteFrame = (JFrame) SwingUtilities.getWindowAncestor(notePanel);
-                noteFrame.dispose();
-            }
-        });
-        optionsMenu.add(deleteMenuItem);
-        menuBar.add(optionsMenu); // Добавляем меню в меню-бар
+
 
         // Окно для редактирования
         JFrame noteFrame = new JFrame("Редактор");
-        noteFrame.setJMenuBar(menuBar);  // Устанавливаем меню-бар в окно
         noteFrame.add(notePanel);
         noteFrame.setLocationRelativeTo(this);
         noteFrame.setSize(600, 400);  // Устанавливаем размер окна
