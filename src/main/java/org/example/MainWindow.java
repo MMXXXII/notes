@@ -313,13 +313,11 @@ public class MainWindow extends JFrame {
                 messagePanel.setLayout(new FlowLayout(FlowLayout.CENTER));
                 notesPanel.add(messagePanel);
             } else {
-                // Используем GridBagLayout для размещения карточек по 2 на строке
                 JPanel gridPanel = new JPanel();
                 gridPanel.setLayout(new GridBagLayout());
                 gridPanel.setBackground(Color.WHITE);
                 GridBagConstraints gbc = new GridBagConstraints();
 
-                // Установим фиксированную ширину и высоту карточки
                 int cardWidth = 730;
                 int cardHeight = 200;
 
@@ -327,34 +325,29 @@ public class MainWindow extends JFrame {
                     Note note = notes.get(i);
                     JPanel noteCard = new JPanel(new BorderLayout(5, 5));
                     noteCard.setBackground(new Color(250, 250, 250));
-                    noteCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Курсор для всей области карточки
+                    noteCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                     noteCard.addMouseListener(new MouseAdapter() {
                         @Override
                         public void mouseClicked(MouseEvent e) {
-                            openNote(note); // Открываем содержимое заметки
+                            openNote(note);
                         }
                     });
 
-                    // Установим фиксированную ширину и высоту карточки
-                    noteCard.setPreferredSize(new Dimension(cardWidth, cardHeight));  // Установим фиксированную высоту и ширину
-                    noteCard.setMaximumSize(new Dimension(cardWidth, cardHeight)); // Максимальная размерность
-                    noteCard.setMinimumSize(new Dimension(cardWidth, cardHeight)); // Минимальная размерность
+                    noteCard.setPreferredSize(new Dimension(cardWidth, cardHeight));
+                    noteCard.setMaximumSize(new Dimension(cardWidth, cardHeight));
+                    noteCard.setMinimumSize(new Dimension(cardWidth, cardHeight));
 
-                    // Для первой карточки добавляем отступ слева
-                    if (i == 0) {
-                        noteCard.setBorder(BorderFactory.createCompoundBorder(
-                                new LineBorder(new Color(220, 220, 220), 1, false),
-                                new EmptyBorder(10, 20, 10, 10) // Добавляем отступ слева для первой карточки
-                        ));
-                    } else {
-                        noteCard.setBorder(BorderFactory.createCompoundBorder(
-                                new LineBorder(new Color(220, 220, 220), 1, false),
-                                new EmptyBorder(10, 10, 10, 10) // Для остальных карточек обычные отступы
-                        ));
-                    }
+                    noteCard.setBorder(BorderFactory.createCompoundBorder(
+                            new LineBorder(new Color(220, 220, 220), 1, false),
+                            new EmptyBorder(10, 10, 10, 10)
+                    ));
 
-                    JLabel titleLabel = new JLabel(note.getTitle());
-                    titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+                    // Заголовок + тип + время создания
+                    JLabel titleLabel = new JLabel(
+                            "<html><b>" + note.getTitle() + "</b> (" + note.getNoteType() + ")<br><i>" +
+                                    "Создано: " + note.getCreatedAt() + "</i></html>"
+                    );
+                    titleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
                     titleLabel.setForeground(Color.DARK_GRAY);
                     noteCard.add(titleLabel, BorderLayout.NORTH);
 
@@ -379,17 +372,16 @@ public class MainWindow extends JFrame {
                     buttonPanel.add(deleteButton);
                     noteCard.add(buttonPanel, BorderLayout.SOUTH);
 
-                    // Вычисляем строку и колонку для GridBagLayout
-                    int row = i / 2; // Каждая вторая карточка будет переносить на новую строку
-                    int col = i % 2; // Каждую карточку размещаем по очереди в 2 столбца
+                    int row = i / 2;
+                    int col = i % 2;
 
-                    gbc.gridx = col; // Колонка
-                    gbc.gridy = row; // Строка
-                    gbc.insets = new Insets(10, 10, 10, 10); // Отступы вокруг карточки
+                    gbc.gridx = col;
+                    gbc.gridy = row;
+                    gbc.insets = new Insets(10, 10, 10, 10);
 
-                    gridPanel.add(noteCard, gbc); // Добавляем карточку в сетку
-                    noteCard.setFocusable(false);  // Убираем фокус с карточки заметки
-                    contentArea.setFocusable(false);  // Убираем фокус с текста
+                    gridPanel.add(noteCard, gbc);
+                    noteCard.setFocusable(false);
+                    contentArea.setFocusable(false);
                 }
 
                 notesPanel.setLayout(new BorderLayout());
@@ -403,6 +395,7 @@ public class MainWindow extends JFrame {
             e.printStackTrace();
         }
     }
+
 
 
 
@@ -580,41 +573,44 @@ public class MainWindow extends JFrame {
     // Диалог для добавления новой заметки
     private void openAddNoteDialog() {
         JDialog dialog = new JDialog(this, "Добавить заметку", true);
-        dialog.setSize(500, 400); // Увеличенное окно
+        dialog.setSize(500, 400);
         dialog.setLocationRelativeTo(this);
 
         JPanel dialogPanel = new JPanel(new BorderLayout(10, 10));
         dialogPanel.setBackground(Color.WHITE);
         dialogPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        // Панель для ввода заголовка и содержания
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
         inputPanel.setBackground(Color.WHITE);
 
         // Заголовок
         JLabel titleLabel = new JLabel("Заголовок");
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Центрируем метку
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER); // Центрируем текст
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         JTextField titleField = new JTextField();
-        titleField.setFont(new Font("SansSerif", Font.PLAIN, 14)); // Уменьшен шрифт
-        titleField.setMaximumSize(new Dimension(Short.MAX_VALUE, titleField.getPreferredSize().height)); // Ограничение ширины
+        titleField.setFont(new Font("SansSerif", Font.PLAIN, 14));
         inputPanel.add(titleLabel);
-        inputPanel.add(Box.createVerticalStrut(5)); // Немного отступа между заголовком и полем
         inputPanel.add(titleField);
 
         // Содержание
         JLabel contentLabel = new JLabel("Содержание");
-        contentLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Центрируем метку
-        contentLabel.setHorizontalAlignment(SwingConstants.CENTER); // Центрируем текст
-        JTextArea contentArea = new JTextArea(10, 30); // Увеличен размер для содержания
+        JTextArea contentArea = new JTextArea(10, 30);
         contentArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        contentArea.setWrapStyleWord(true);
-        contentArea.setLineWrap(true);
         JScrollPane contentScrollPane = new JScrollPane(contentArea);
         inputPanel.add(contentLabel);
-        inputPanel.add(Box.createVerticalStrut(5)); // Отступ
         inputPanel.add(contentScrollPane);
+
+        // Тип заметки
+        JLabel typeLabel = new JLabel("Тип заметки");
+        JComboBox<String> typeComboBox = new JComboBox<>();
+        typeComboBox.addItem(NoteType.ЛИЧНАЯ.name());
+        typeComboBox.addItem(NoteType.РАБОЧАЯ.name());
+        typeComboBox.addItem(NoteType.ИДЕЯ.name());
+        typeComboBox.addItem(NoteType.НАПОМИНАНИЕ.name());
+        typeComboBox.addItem(NoteType.ЗАДАЧА.name());
+
+        inputPanel.add(typeLabel);
+        inputPanel.add(typeComboBox);
 
         dialogPanel.add(inputPanel, BorderLayout.CENTER);
 
@@ -623,11 +619,14 @@ public class MainWindow extends JFrame {
             try {
                 String title = titleField.getText().trim();
                 String content = contentArea.getText().trim();
+                String noteType = (String) typeComboBox.getSelectedItem();
+
                 if (title.isEmpty() || content.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Заголовок и содержание не могут быть пустыми!");
                     return;
                 }
-                DatabaseHandler.addNote(userId, title, content);
+
+                DatabaseHandler.addNote(userId, title, content, noteType);  // Передаем тип заметки
                 JOptionPane.showMessageDialog(this, "Заметка добавлена!");
                 loadNotes();
                 dialog.dispose();
@@ -641,5 +640,6 @@ public class MainWindow extends JFrame {
         dialog.add(dialogPanel);
         dialog.setVisible(true);
     }
+
 
 }

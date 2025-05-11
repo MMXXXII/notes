@@ -54,19 +54,23 @@ public class DatabaseHandler {
         }
     }
 
-    // Метод для добавления новой заметки
-    public static void addNote(int userId, String title, String content) throws SQLException, ClassNotFoundException {
-        String sql = "INSERT INTO notes (user_id, title, content, created_at) VALUES (?, ?, ?, ?)";
+    // Метод для добавления новой заметки с учетом типа заметки
+    public static void addNote(int userId, String title, String content, String noteType) throws SQLException, ClassNotFoundException {
+        String sql = "INSERT INTO notes (user_id, title, content, created_at, note_type) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            Timestamp currentTimestamp = new Timestamp(System.currentTimeMillis()); // текущее время
-            stmt.setInt(1, userId);  // передаем правильный userId
+            Timestamp currentTimestamp = new Timestamp(System.currentTimeMillis());
+            stmt.setInt(1, userId);
             stmt.setString(2, title);
             stmt.setString(3, content);
-            stmt.setTimestamp(4, currentTimestamp); // добавляем время создания
+            stmt.setTimestamp(4, currentTimestamp);
+            stmt.setString(5, noteType);  // Добавляем тип заметки в базу
             stmt.executeUpdate();
         }
     }
+
+
+
 
 
     public static List<Note> getNotes(int userId) throws SQLException, ClassNotFoundException {
@@ -81,11 +85,13 @@ public class DatabaseHandler {
                 String title = rs.getString("title");
                 String content = rs.getString("content");
                 Timestamp createdAt = rs.getTimestamp("created_at");
-                notes.add(new Note(id, userId, title, content, createdAt));
+                String noteType = rs.getString("note_type"); // получаем тип заметки
+                notes.add(new Note(id, userId, title, content, createdAt, noteType)); // передаем тип в конструктор
             }
         }
         return notes;
     }
+
 
 
     public static void updateNote(int noteId, String newTitle, String newContent) throws SQLException, ClassNotFoundException {
@@ -133,11 +139,13 @@ public class DatabaseHandler {
                 String title = rs.getString("title");
                 String content = rs.getString("content");
                 Timestamp createdAt = rs.getTimestamp("created_at");
-                notes.add(new Note(id, userId, title, content, createdAt));
+                String noteType = rs.getString("note_type"); // Добавляем получение noteType из ResultSet
+                notes.add(new Note(id, userId, title, content, createdAt, noteType)); // Передаем noteType
             }
         }
         return notes;
     }
+
 
 
 }
