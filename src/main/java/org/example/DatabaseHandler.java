@@ -94,8 +94,8 @@ public class DatabaseHandler {
 
 
 
-    public static void updateNote(int noteId, String newTitle, String newContent) throws SQLException, ClassNotFoundException {
-        String sql = "UPDATE notes SET title = ?, content = ? WHERE id = ?";
+    public static void updateNote(int noteId, String newTitle, String newContent, String newNoteType) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE notes SET title = ?, content = ?, note_type = ? WHERE id = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -103,10 +103,12 @@ public class DatabaseHandler {
             System.out.println("Updating note with ID: " + noteId);
             System.out.println("New Title: " + newTitle);
             System.out.println("New Content: " + newContent);
+            System.out.println("New Note Type: " + newNoteType);
 
             stmt.setString(1, newTitle);
             stmt.setString(2, newContent);
-            stmt.setInt(3, noteId);
+            stmt.setString(3, newNoteType);
+            stmt.setInt(4, noteId);
 
             int rowsAffected = stmt.executeUpdate();
 
@@ -114,6 +116,7 @@ public class DatabaseHandler {
             System.out.println("Rows affected: " + rowsAffected);
         }
     }
+
 
 
     public static void deleteNote(int noteId) throws SQLException, ClassNotFoundException {
@@ -128,6 +131,10 @@ public class DatabaseHandler {
 
     public static List<Note> searchNotes(int userId, String query) throws SQLException, ClassNotFoundException {
         String sql = "SELECT * FROM notes WHERE user_id = ? AND title LIKE ?";
+        System.out.println("Executing SQL query: " + sql);
+        System.out.println("query parameter: " + query);  // Добавьте вывод query
+
+
         List<Note> notes = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
