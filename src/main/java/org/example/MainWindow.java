@@ -23,12 +23,10 @@ public class MainWindow extends JFrame {
         this.email = email;
 
         setTitle("Notes App");
-        setResizable(true);  // Окно теперь будет изменяемым
+        setResizable(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);  // Окно будет по центру
-
-        // Делаем окно полноэкранным
-        setExtendedState(JFrame.MAXIMIZED_BOTH);  // Максимизируем окно на весь экран
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setLocationRelativeTo(null);
 
         mainPanel = new JPanel(new BorderLayout(15, 15));
         mainPanel.setBackground(Color.WHITE);
@@ -37,20 +35,22 @@ public class MainWindow extends JFrame {
         setupHeaderPanel(userId, username);
         setupNotesPanel();
         setupResizeListener();
-
         loadNotes();
     }
 
 
 
+
     private void setupHeaderPanel(int userId, String username) {
-        // Панель для поиска
-        JPanel searchPanel = setupSearchPanel();
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
+        headerPanel.setBackground(Color.WHITE);
 
-        // Панель для никнейма
-        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.CENTER)); // Используем FlowLayout с выравниванием по левому краю
-        userPanel.setBackground(Color.WHITE);
+        // Панель поиска
+        headerPanel.add(setupSearchPanel());
+        headerPanel.add(Box.createHorizontalStrut(20));
 
+        // Панель пользователя
         JLabel usernameLabel = new JLabel(username);
         usernameLabel.setForeground(Color.BLUE);
         usernameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -61,31 +61,21 @@ public class MainWindow extends JFrame {
             }
         });
 
+        JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        userPanel.setBackground(Color.WHITE);
         userPanel.add(usernameLabel);
 
-        // Панель для заголовка с BoxLayout для правильной адаптации компонентов
-        JPanel headerPanel = new JPanel();
-        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS)); // Горизонтальное расположение компонентов
-        headerPanel.setBackground(Color.WHITE);
-
-        // Добавляем панели в заголовок
-        headerPanel.add(searchPanel);
-        headerPanel.add(Box.createHorizontalStrut(20)); // Добавляем горизонтальный отступ
         headerPanel.add(userPanel);
 
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
-
-        // Помещаем все в mainPanel
         mainPanel.add(headerPanel, BorderLayout.NORTH);
     }
-
-
 
     private JPanel setupSearchPanel() {
         JTextField searchField = new JTextField();
         searchField.setForeground(Color.DARK_GRAY);
         searchField.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        searchField.setBorder(new CompoundBorder(
+        searchField.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(new Color(200, 200, 200), 1, true),
                 new EmptyBorder(5, 10, 5, 10)
         ));
@@ -93,20 +83,14 @@ public class MainWindow extends JFrame {
         JButton searchButton = createStyledButton("Поиск");
         searchButton.addActionListener(e -> searchNotes(searchField.getText()));
 
-        JPanel panel = new JPanel(new BorderLayout(5, 5)); // Используем BorderLayout для управления компонентами
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBackground(Color.WHITE);
+        panel.add(searchField, BorderLayout.CENTER);
+        panel.add(searchButton, BorderLayout.EAST);
 
-        // Устанавливаем отступ слева для строки поиска, но не меняем ее ширину
-        panel.add(searchField, BorderLayout.CENTER); // Строка поиска занимает оставшееся пространство
-        panel.add(searchButton, BorderLayout.EAST); // Кнопка справа
-
-        // Добавляем отступ с левого края на весь панель
-        JPanel wrapperPanel = new JPanel(new BorderLayout());
-        wrapperPanel.setBackground(Color.WHITE);
-        wrapperPanel.add(panel, BorderLayout.CENTER);
-        wrapperPanel.setBorder(new EmptyBorder(0, 20, 0, 0)); // Добавляем отступ слева
-
-        return wrapperPanel;
+        // Добавляем отступ сразу к главной панели
+        panel.setBorder(new EmptyBorder(0, 20, 0, 0));
+        return panel;
     }
 
     private void setupNotesPanel() {
@@ -114,14 +98,13 @@ public class MainWindow extends JFrame {
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setBackground(Color.WHITE);
 
-        // Создаем JScrollPane для списка заметок
         JScrollPane scrollPane = new JScrollPane(notesPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setBorder(null);
 
-        // Убираем закругленные углы скроллбаров
+        // Кастомизация скроллбара
         scrollPane.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
             @Override
             protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
@@ -145,43 +128,34 @@ public class MainWindow extends JFrame {
                 return new JButton();
             }
         });
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(15, Integer.MAX_VALUE));
 
-        JScrollBar verticalScrollBar = scrollPane.getVerticalScrollBar();
-        verticalScrollBar.setPreferredSize(new Dimension(15, Integer.MAX_VALUE));
-
-        // Создаем заголовок "ЗАМЕТКИ"
-        JLabel titleLabel = new JLabel("ЗАМЕТКИ");
+        // Заголовок "ЗАМЕТКИ"
+        JLabel titleLabel = new JLabel("ЗАМЕТКИ", SwingConstants.CENTER);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
         titleLabel.setForeground(Color.DARK_GRAY);
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        // Панель заголовка для размещения сверху
         JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         titlePanel.setBackground(Color.WHITE);
         titlePanel.add(titleLabel);
 
-        // Создаем основной контейнер для заголовка и списка заметок
-        JPanel notesContainer = new JPanel();
-        notesContainer.setLayout(new BorderLayout());
+        // Основной контейнер
+        JPanel notesContainer = new JPanel(new BorderLayout());
         notesContainer.setBackground(Color.WHITE);
         notesContainer.add(titlePanel, BorderLayout.NORTH);
         notesContainer.add(scrollPane, BorderLayout.CENTER);
 
-        // Размещаем в mainPanel
-        mainPanel.add(notesContainer, BorderLayout.CENTER);
-
-        // Создаем кнопку для добавления заметки
+        // Кнопка добавления заметки
         JButton addNoteButton = createStyledButton("Добавить заметку");
         addNoteButton.addActionListener(e -> openAddNoteDialog());
 
-        // Панель с кнопкой, размещаем ее в нижней части
         JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         addButtonPanel.setBackground(Color.WHITE);
         addButtonPanel.add(addNoteButton);
+
+        mainPanel.add(notesContainer, BorderLayout.CENTER);
         mainPanel.add(addButtonPanel, BorderLayout.SOUTH);
     }
-
-
 
     private void setupResizeListener() {
         addComponentListener(new ComponentAdapter() {
@@ -197,7 +171,6 @@ public class MainWindow extends JFrame {
             }
         });
     }
-
 
     private void openUserProfile(int userId) {
         JDialog profileDialog = new JDialog(this, "Профиль пользователя", true);
@@ -238,7 +211,6 @@ public class MainWindow extends JFrame {
         profileDialog.setVisible(true);
     }
 
-
     private void showExitConfirmation(JDialog parentDialog) {
         JDialog confirmDialog = new JDialog(parentDialog, "Подтверждение выхода", true);
         confirmDialog.setSize(400, 150);
@@ -247,40 +219,34 @@ public class MainWindow extends JFrame {
 
         JPanel mainPanel = new JPanel();
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         confirmDialog.add(mainPanel);
 
-        JLabel messageLabel = new JLabel("Вы точно хотите выйти из аккаунта?");
-        messageLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        messageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(messageLabel);
+        mainPanel.add(new JLabel("Вы точно хотите выйти из аккаунта?", SwingConstants.CENTER));
 
-        mainPanel.add(Box.createVerticalStrut(10));
-
-        JPanel buttonPanel = new JPanel();
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setOpaque(false);
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(buttonPanel);
 
-        JButton yesButton = createStyledButton("Да");
-        JButton noButton = createStyledButton("Нет");
-
-        yesButton.addActionListener(e -> {
+        buttonPanel.add(createStyledButton("Да", e -> {
             confirmDialog.dispose();
             parentDialog.dispose();
             dispose();
             new LoginWindow();
-        });
-
-        noButton.addActionListener(e -> confirmDialog.dispose());
-
-        buttonPanel.add(yesButton);
-        buttonPanel.add(noButton);
-        mainPanel.add(buttonPanel);
+        }));
+        buttonPanel.add(createStyledButton("Нет", e -> confirmDialog.dispose()));
 
         confirmDialog.setVisible(true);
     }
 
+    // Вспомогательный метод для создания кнопки
+    private JButton createStyledButton(String text, ActionListener action) {
+        JButton button = createStyledButton(text);
+        button.addActionListener(action);
+        return button;
+    }
 
     // Метод для создания стилизованной кнопки
     private JButton createStyledButton(String text) {
@@ -406,103 +372,93 @@ public class MainWindow extends JFrame {
         }
     }
 
-
-
-
     private void openNote(Note note) {
+        JFrame noteFrame = new JFrame("Редактор");
+        noteFrame.setSize(600, 400);
+        noteFrame.setLocationRelativeTo(this);
+
         JPanel notePanel = new JPanel(new BorderLayout(5, 5));
         notePanel.setBackground(Color.WHITE);
         notePanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        noteFrame.add(notePanel);
 
-        // Поле заголовка
-        JTextField titleField = new JTextField(note.getTitle());
-        titleField.setFont(new Font("SansSerif", Font.BOLD, 16));
-        titleField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
-        titleField.setBackground(Color.WHITE);
-        titleField.setCaretColor(Color.BLACK);
+        JTextField titleField = createTextField(note.getTitle(), Font.BOLD, 16);
+        JTextArea contentArea = createTextArea(note.getContent());
+        JComboBox<String> typeComboBox = createTypeComboBox(note.getNoteType());
 
-        // Поле содержания
-        JTextArea contentArea = new JTextArea(note.getContent());
-        contentArea.setWrapStyleWord(true);
-        contentArea.setLineWrap(true);
-        contentArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        contentArea.setBackground(Color.WHITE);
-        contentArea.setCaretColor(Color.BLACK);
-        contentArea.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.GRAY, 1),
-                BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
-
-        // Выбор типа заметки
-        JLabel typeLabel = new JLabel("Тип заметки");
-        JComboBox<String> typeComboBox = new JComboBox<>();
-        typeComboBox.addItem(NoteType.ЛИЧНАЯ.name());
-        typeComboBox.addItem(NoteType.РАБОЧАЯ.name());
-        typeComboBox.addItem(NoteType.ИДЕЯ.name());
-        typeComboBox.addItem(NoteType.НАПОМИНАНИЕ.name());
-        typeComboBox.addItem(NoteType.ЗАДАЧА.name());
-
-        // Устанавливаем текущий тип заметки
-        typeComboBox.setSelectedItem(note.getNoteType());
-
-        // Панель для типа заметки
-        JPanel typePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        typePanel.setBackground(Color.WHITE);
-        typePanel.add(typeLabel);
-        typePanel.add(typeComboBox);
-
-        // Добавляем элементы на панель
         JPanel inputPanel = new JPanel();
         inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
         inputPanel.setBackground(Color.WHITE);
         inputPanel.add(titleField);
-        inputPanel.add(Box.createVerticalStrut(10)); // Отступ
-        inputPanel.add(typePanel);
-        inputPanel.add(Box.createVerticalStrut(10)); // Отступ
+        inputPanel.add(Box.createVerticalStrut(10));
+        inputPanel.add(new JLabel("Тип заметки"));
+        inputPanel.add(typeComboBox);
+        inputPanel.add(Box.createVerticalStrut(10));
         inputPanel.add(new JScrollPane(contentArea));
 
-        notePanel.add(inputPanel, BorderLayout.CENTER);
-
-        // Кнопка "Сохранить"
         JButton saveButton = createStyledButton("Сохранить");
+        saveButton.addActionListener(e -> saveNote(note, titleField.getText(), contentArea.getText(), (String) typeComboBox.getSelectedItem(), noteFrame));
 
-        // Обработчик для сохранения
-        saveButton.addActionListener(e -> {
-            try {
-                String title = titleField.getText().trim();
-                String content = contentArea.getText().trim();
-                String noteType = (String) typeComboBox.getSelectedItem();
-
-                if (title.isEmpty() || content.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Заголовок и содержание не могут быть пустыми!");
-                    return;
-                }
-
-                // Сохраняем изменения заметки в базе данных
-                DatabaseHandler.updateNote(note.getId(), title, content, noteType);
-                JOptionPane.showMessageDialog(this, "Заметка сохранена!");
-                loadNotes();
-                JFrame noteFrame = (JFrame) SwingUtilities.getWindowAncestor(notePanel);
-                noteFrame.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Ошибка при сохранении заметки");
-                ex.printStackTrace();
-            }
-        });
-
-        // Панель кнопки
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.add(saveButton);
 
+        notePanel.add(inputPanel, BorderLayout.CENTER);
         notePanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Окно редактора
-        JFrame noteFrame = new JFrame("Редактор");
-        noteFrame.add(notePanel);
-        noteFrame.setLocationRelativeTo(this);
-        noteFrame.setSize(600, 400);
         noteFrame.setVisible(true);
+    }
+
+    // Вспомогательный метод для создания текстового поля
+    private JTextField createTextField(String text, int style, int size) {
+        JTextField field = new JTextField(text);
+        field.setFont(new Font("SansSerif", style, size));
+        field.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        field.setBackground(Color.WHITE);
+        field.setCaretColor(Color.BLACK);
+        return field;
+    }
+
+    // Вспомогательный метод для создания текстовой области
+    private JTextArea createTextArea(String text) {
+        JTextArea area = new JTextArea(text, 10, 50);
+        area.setWrapStyleWord(true);
+        area.setLineWrap(true);
+        area.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        area.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                new EmptyBorder(5, 5, 5, 5)
+        ));
+        return area;
+    }
+
+    // Вспомогательный метод для создания выпадающего списка типов
+    private JComboBox<String> createTypeComboBox(String selectedType) {
+        JComboBox<String> comboBox = new JComboBox<>(new String[]{
+                NoteType.ЛИЧНАЯ.name(),
+                NoteType.РАБОЧАЯ.name(),
+                NoteType.ИДЕЯ.name(),
+                NoteType.НАПОМИНАНИЕ.name(),
+                NoteType.ЗАДАЧА.name()
+        });
+        comboBox.setSelectedItem(selectedType);
+        return comboBox;
+    }
+
+    // Вспомогательный метод для сохранения заметки
+    private void saveNote(Note note, String title, String content, String noteType, JFrame frame) {
+        try {
+            if (title.isEmpty() || content.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Заголовок и содержание не могут быть пустыми!");
+                return;
+            }
+            DatabaseHandler.updateNote(note.getId(), title.trim(), content.trim(), noteType);
+            JOptionPane.showMessageDialog(this, "Заметка сохранена!");
+            loadNotes();
+            frame.dispose();
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Ошибка при сохранении заметки");
+            ex.printStackTrace();
+        }
     }
 
     private void searchNotes(String query) {
@@ -610,14 +566,12 @@ public class MainWindow extends JFrame {
                     });
 
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    e.printStackTrace();  // Не выводим стек вызовов в консоль
                 }
             }
         };
         searchWorker.execute();
     }
-
-
 
     // Удаление заметки
     private void deleteNote(Note note) {
@@ -705,6 +659,5 @@ public class MainWindow extends JFrame {
         dialog.add(dialogPanel);
         dialog.setVisible(true);
     }
-
 
 }

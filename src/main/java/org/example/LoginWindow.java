@@ -4,25 +4,20 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class LoginWindow extends JFrame {
-    private JTextField usernameField;
-    private JPasswordField passwordField;
-    private JButton loginButton;
-    private JButton registerButton;
-    private JButton togglePasswordVisibilityButton;
+    private final JTextField usernameField = new JTextField("mmxxxii");
+    private final JPasswordField passwordField = new JPasswordField("Ctvty2005@");
+    private final JButton togglePasswordVisibilityButton = new JButton("Показать");
 
     public LoginWindow() {
         setTitle("Вход в систему");
         setSize(360, 320);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        JPanel mainPanel = new JPanel();
+        var mainPanel = new JPanel();
         mainPanel.setBackground(Color.WHITE);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -30,90 +25,78 @@ public class LoginWindow extends JFrame {
 
         JLabel titleLabel = new JLabel("Добро пожаловать");
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setAlignmentX(CENTER_ALIGNMENT);
         mainPanel.add(titleLabel);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        mainPanel.add(Box.createVerticalStrut(20));
-
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        var formPanel = new JPanel();
         formPanel.setOpaque(false);
-
-        JLabel userLabel = new JLabel("Логин:");
-        userLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        formPanel.add(userLabel);
-
-        usernameField = new JTextField();
-        usernameField.setPreferredSize(new Dimension(300, 30));  // Убираем максимальный размер
-        usernameField.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
-        // Автозаполнение логина
-        usernameField.setText("mmxxxii");
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.add(createLabel("Логин:"));
+        setupTextField(usernameField);
         formPanel.add(usernameField);
-
-        formPanel.add(Box.createVerticalStrut(10));
-
-        JLabel passLabel = new JLabel("Пароль:");
-        passLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        formPanel.add(passLabel);
-
-        passwordField = new JPasswordField();
-        passwordField.setPreferredSize(new Dimension(300, 30));  // Убираем максимальный размер
-        passwordField.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
-        passwordField.setFont(new Font("SansSerif", Font.PLAIN, 12));  // уменьшение шрифта
-        passwordField.setEchoChar('*');  // Скрываем пароль с самого начала
-        // Автозаполнение пароля
-        passwordField.setText("Ctvty2005@");
+        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        formPanel.add(createLabel("Пароль:"));
+        setupPasswordField(passwordField);
         formPanel.add(passwordField);
 
-        // Создание кнопки для показа/скрытия пароля
-        togglePasswordVisibilityButton = new JButton("Показать");
-        togglePasswordVisibilityButton.setFont(new Font("SansSerif", Font.PLAIN, 12)); // Уменьшение шрифта
-        togglePasswordVisibilityButton.setPreferredSize(new Dimension(90, 25)); // Уменьшение кнопки
-        togglePasswordVisibilityButton.setBackground(Color.WHITE);
-        togglePasswordVisibilityButton.setForeground(Color.DARK_GRAY);
-        togglePasswordVisibilityButton.setFocusPainted(false);
-        togglePasswordVisibilityButton.setBorderPainted(false);
-        togglePasswordVisibilityButton.addActionListener(e -> togglePasswordVisibility());
-
+        setupTogglePasswordButton();
         formPanel.add(togglePasswordVisibilityButton);
         mainPanel.add(formPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JPanel buttonPanel = new JPanel();
+        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setOpaque(false);
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 0));
 
-        loginButton = createStyledButton("Войти");
-        registerButton = createStyledButton("Регистрация");
-
-        // Добавляем обработчики событий
+        var loginButton = createStyledButton("Войти");
+        var registerButton = createStyledButton("Регистрация");
         loginButton.addActionListener(e -> login());
         registerButton.addActionListener(e -> openRegisterWindow());
-
         buttonPanel.add(loginButton);
         buttonPanel.add(registerButton);
 
         mainPanel.add(buttonPanel);
 
-        // Убираем JScrollPane, чтобы не было прокрутки
-        setContentPane(mainPanel);
-
         setVisible(true);
     }
 
-    // Метод для переключения видимости пароля
-    private void togglePasswordVisibility() {
-        if (passwordField.getEchoChar() == '*') {
-            passwordField.setEchoChar((char) 0);  // Показываем пароль
-            togglePasswordVisibilityButton.setText("Скрыть");  // Меняем текст на кнопке
-        } else {
-            passwordField.setEchoChar('*');  // Скрываем пароль
-            togglePasswordVisibilityButton.setText("Показать");  // Меняем текст на кнопке
-        }
+    private void setupTextField(JTextField field) {
+        field.setPreferredSize(new Dimension(300, 30));
+        field.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
+    }
+
+    private void setupPasswordField(JPasswordField field) {
+        setupTextField(field);
+        field.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        field.setEchoChar('*');
+    }
+
+    private void setupTogglePasswordButton() {
+        togglePasswordVisibilityButton.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        togglePasswordVisibilityButton.setPreferredSize(new Dimension(90, 25));
+        togglePasswordVisibilityButton.setBackground(Color.WHITE);
+        togglePasswordVisibilityButton.setForeground(Color.DARK_GRAY);
+        togglePasswordVisibilityButton.setFocusPainted(false);
+        togglePasswordVisibilityButton.setBorderPainted(false);
+        togglePasswordVisibilityButton.addActionListener(e -> {
+            if (passwordField.getEchoChar() == '*') {
+                passwordField.setEchoChar((char) 0);
+                togglePasswordVisibilityButton.setText("Скрыть");
+            } else {
+                passwordField.setEchoChar('*');
+                togglePasswordVisibilityButton.setText("Показать");
+            }
+        });
+    }
+
+    private JLabel createLabel(String text) {
+        var label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        return label;
     }
 
     private JButton createStyledButton(String text) {
-        JButton button = new JButton(text);
+        var button = new JButton(text);
         button.setBackground(Color.WHITE);
         button.setForeground(Color.DARK_GRAY);
         button.setFocusPainted(false);
@@ -122,40 +105,31 @@ public class LoginWindow extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setOpaque(true);
         button.setContentAreaFilled(false);
-
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setFont(new Font("SansSerif", Font.BOLD, 14));
+                button.setFont(button.getFont().deriveFont(Font.BOLD));
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                button.setFont(button.getFont().deriveFont(Font.PLAIN));
             }
         });
-
         return button;
     }
 
     private void login() {
-        String username = usernameField.getText(); // Получаем имя пользователя
-        String password = new String(passwordField.getPassword()); // Получаем пароль
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
 
         try {
-            // Проверяем правильность логина и пароля
             if (DatabaseHandler.authenticateUser(username, password)) {
                 new MessageWindow(this, "Вход успешен! Добро пожаловать, " + username, "Успех");
 
-                // Получаем userId и email из базы данных
-                int userId = getUserId(username);
-                String email = getUserEmail(username); // Получаем email
+                int userId = getUserData(username, "id", -1);
+                String email = getUserData(username, "email", null);
 
-                // Создаем главное окно и передаем userId, username и email
-                MainWindow mainWindow = new MainWindow(userId, username, email);
-
-                // Делаем главное окно видимым и закрываем окно входа
-                mainWindow.setVisible(true);
+                new MainWindow(userId, username, email).setVisible(true);
                 dispose();
             } else {
-                // Если логин или пароль неверные
                 new MessageWindow(this, "Неверный логин или пароль.", "Ошибка");
             }
         } catch (Exception e) {
@@ -164,36 +138,23 @@ public class LoginWindow extends JFrame {
         }
     }
 
-    private String getUserEmail(String username) throws SQLException, ClassNotFoundException {
-        // Запрос в базу данных для получения email пользователя по его имени
-        String sql = "SELECT email FROM users WHERE username = ?";
+    // Универсальный метод для получения одного значения из базы по username
+    private <T> T getUserData(String username, String column, T defaultValue) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT " + column + " FROM users WHERE username = ?";
         try (Connection conn = DatabaseHandler.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, username);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getString("email"); // Возвращаем email
+                Object val = rs.getObject(column);
+                if (val != null) return (T) val;
             }
         }
-        return null; // Если email не найден
-    }
-
-    private int getUserId(String username) throws SQLException, ClassNotFoundException {
-        // Запрос в базу данных для получения ID пользователя по его имени
-        String sql = "SELECT id FROM users WHERE username = ?";
-        try (Connection conn = DatabaseHandler.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt("id"); // Возвращаем userId
-            }
-        }
-        return -1; // Если не найден пользователь
+        return defaultValue;
     }
 
     private void openRegisterWindow() {
-        dispose();  // Закрываем окно входа
-        new RegisterWindow();  // Открываем окно регистрации
+        dispose();
+        new RegisterWindow();
     }
 }

@@ -1,88 +1,63 @@
 package org.example;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.sql.SQLException;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RegisterWindow extends JFrame {
-    private JTextField usernameField;
-    private JPasswordField passwordField;
-    private JTextField emailField;
-    private JButton registerButton;
-    private JButton backButton;
+    private JTextField usernameField = new JTextField();
+    private JPasswordField passwordField = new JPasswordField();
+    private JTextField emailField = new JTextField();
 
     public RegisterWindow() {
         setTitle("Регистрация");
         setSize(360, 320);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        JPanel mainPanel = new JPanel();
+        var mainPanel = new JPanel();
         mainPanel.setBackground(Color.WHITE);
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         add(mainPanel);
 
-        JLabel titleLabel = new JLabel("Регистрация");
+        var titleLabel = new JLabel("Регистрация");
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainPanel.add(titleLabel);
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        mainPanel.add(Box.createVerticalStrut(20));
-
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        var formPanel = new JPanel();
         formPanel.setOpaque(false);
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
 
-        JLabel userLabel = new JLabel("Логин:");
-        userLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        formPanel.add(userLabel);
-
-        usernameField = new JTextField();
-        usernameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        usernameField.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
+        formPanel.add(createLabel("Логин:"));
+        setupField(usernameField);
         formPanel.add(usernameField);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        formPanel.add(Box.createVerticalStrut(10));
-
-        JLabel passLabel = new JLabel("Пароль:");
-        passLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        formPanel.add(passLabel);
-
-        passwordField = new JPasswordField();
-        passwordField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        passwordField.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
+        formPanel.add(createLabel("Пароль:"));
+        setupField(passwordField);
         formPanel.add(passwordField);
+        formPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        formPanel.add(Box.createVerticalStrut(10));
-
-        JLabel emailLabel = new JLabel("Email:");
-        emailLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        formPanel.add(emailLabel);
-
-        emailField = new JTextField();
-        emailField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        emailField.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
+        formPanel.add(createLabel("Email:"));
+        setupField(emailField);
         formPanel.add(emailField);
 
         mainPanel.add(formPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JPanel buttonPanel = new JPanel();
+        var buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.setOpaque(false);
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 0));
 
-        registerButton = createStyledButton("Зарегистрироваться");
+        var registerButton = createStyledButton("Зарегистрироваться");
         registerButton.addActionListener(e -> register());
         buttonPanel.add(registerButton);
 
-        buttonPanel.add(Box.createVerticalStrut(10)); // Добавляем отступ между кнопками
-
-        backButton = createStyledButton("Назад");
+        var backButton = createStyledButton("Назад");
         backButton.addActionListener(e -> goBack());
         buttonPanel.add(backButton);
 
@@ -91,8 +66,21 @@ public class RegisterWindow extends JFrame {
         setVisible(true);
     }
 
+    private JLabel createLabel(String text) {
+        var label = new JLabel(text);
+        label.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        return label;
+    }
+
+    private void setupField(JComponent field) {
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        if (field instanceof JTextField) {
+            field.setBorder(new LineBorder(new Color(200, 200, 200), 1, true));
+        }
+    }
+
     private JButton createStyledButton(String text) {
-        JButton button = new JButton(text);
+        var button = new JButton(text);
         button.setBackground(Color.WHITE);
         button.setForeground(Color.DARK_GRAY);
         button.setFocusPainted(false);
@@ -104,30 +92,27 @@ public class RegisterWindow extends JFrame {
 
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setFont(new Font("SansSerif", Font.BOLD, 14));
+                button.setFont(button.getFont().deriveFont(Font.BOLD));
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                button.setFont(button.getFont().deriveFont(Font.PLAIN));
             }
         });
 
         return button;
     }
 
-    // Метод для регистрации нового пользователя
     private void register() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
         String email = emailField.getText();
 
-        // Регулярное выражение для проверки пароля
         String passwordRegex = "^(?=.*[A-Z])(?=.*[\\W_]).{8,}$";
-        Pattern pattern = Pattern.compile(passwordRegex);
-        Matcher matcher = pattern.matcher(password);
-
-        if (!matcher.matches()) {
-            JOptionPane.showMessageDialog(this, "Пароль должен содержать хотя бы одну заглавную букву, один специальный символ и быть не менее 8 символов.", "Ошибка", JOptionPane.ERROR_MESSAGE);
+        if (!Pattern.matches(passwordRegex, password)) {
+            JOptionPane.showMessageDialog(this,
+                    "Пароль должен содержать хотя бы одну заглавную букву, один специальный символ и быть не менее 8 символов.",
+                    "Ошибка", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -142,10 +127,8 @@ public class RegisterWindow extends JFrame {
         }
     }
 
-    // Метод для возврата к окну логина
     private void goBack() {
-        dispose(); // Закрыть окно регистрации
-        new LoginWindow(); // Показать окно логина
+        dispose();
+        new LoginWindow();
     }
-
 }
