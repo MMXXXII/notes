@@ -4,7 +4,6 @@ public enum NoteType {
     ЛИЧНАЯ("Личная"),
     РАБОЧАЯ("Рабочая"),
     ИДЕЯ("Идея"),
-    НАПОМИНАНИЕ("Напоминание"),
     ЗАДАЧА("Задача");
 
     private final String displayName;

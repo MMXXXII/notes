@@ -2,7 +2,6 @@ package org.example;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicScrollBarUI;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import java.awt.*;
@@ -10,93 +9,162 @@ import java.awt.event.*;
 import java.util.List;
 
 public class MainWindow extends JFrame {
-    private int userId;
-    private String username;
-    private String email;
     private JPanel mainPanel;
     private JPanel notesPanel;
     private boolean isResizing = false;  // Флаг для отслеживания изменения размера окна
+    private MainWindowController controller;
+    private CalendarPanel calendarPanel;
 
+    // Конструктор основного окна приложения (Notes App)
     public MainWindow(int userId, String username, String email) {
-        this.userId = userId;
-        this.username = username;
-        this.email = email;
+        // Настраиваем основные параметры окна
+        setTitle("Notes App");                // Заголовок окна
+        setResizable(true);                   // Возможность изменения размеров окна
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // Закрытие программы при закрытии окна
+        setExtendedState(JFrame.MAXIMIZED_BOTH);        // Окно открывается в полноэкранном режиме
+        setLocationRelativeTo(null);          // Центрируем окно на экране
 
-        setTitle("Notes App");
-        setResizable(true);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setExtendedState(JFrame.MAXIMIZED_BOTH);
-        setLocationRelativeTo(null);
+        // Создаем контроллер
+        controller = new MainWindowController(this, userId, username, email);
 
+        // Создаем основную панель с менеджером компоновки BorderLayout
         mainPanel = new JPanel(new BorderLayout(15, 15));
-        mainPanel.setBackground(Color.WHITE);
-        add(mainPanel);
+        mainPanel.setBackground(Color.WHITE); // Устанавливаем белый фон основной панели
+        add(mainPanel);                       // Добавляем основную панель в окно
 
+        // Настраиваем верхнюю панель с информацией о пользователе
         setupHeaderPanel(userId, username);
+
+        // Создаем панель с разделением на заметки и календарь
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setDividerLocation(0.7); // 70% для заметок, 30% для календаря
+        splitPane.setResizeWeight(0.7);
+        splitPane.setBorder(null);
+        splitPane.setDividerSize(5);
+        splitPane.setContinuousLayout(true);
+
+        // Левая панель - заметки
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setBackground(Color.WHITE);
+
+        // Настраиваем панель для отображения заметок
         setupNotesPanel();
+        leftPanel.add(createNotesContainer(), BorderLayout.CENTER);
+
+        // Кнопка корзины
+        JButton trashButton = createStyledButton("Корзина");
+        trashButton.addActionListener(e -> controller.openTrashDialog());
+
+// Кнопка добавления заметки
+        JButton addNoteButton = createStyledButton("Добавить заметку");
+        addNoteButton.addActionListener(e -> controller.openAddNoteDialog());
+
+        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        addButtonPanel.setBackground(Color.WHITE);
+        addButtonPanel.add(trashButton);     // Добавляем кнопку корзины
+        addButtonPanel.add(addNoteButton);   // Добавляем кнопку добавления заметки
+        leftPanel.add(addButtonPanel, BorderLayout.SOUTH);
+
+        // Правая панель - календарь
+        calendarPanel = new CalendarPanel(controller);
+        controller.setCalendarPanel(calendarPanel);
+
+        // Добавляем панели в разделитель
+        splitPane.setLeftComponent(leftPanel);
+        splitPane.setRightComponent(calendarPanel);
+
+        mainPanel.add(splitPane, BorderLayout.CENTER);
+
+        // Добавляем слушатель изменения размеров окна
         setupResizeListener();
-        loadNotes();
+
+        // Загружаем заметки пользователя
+        controller.loadNotes();
     }
 
-
-
-
+    // Метод настройки верхней панели (хедера) приложения
     private void setupHeaderPanel(int userId, String username) {
+        // Создаем панель хедера с горизонтальным расположением компонентов
         JPanel headerPanel = new JPanel();
         headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.X_AXIS));
-        headerPanel.setBackground(Color.WHITE);
+        headerPanel.setBackground(Color.WHITE); // Белый фон для хедера
 
-        // Панель поиска
+        // Добавляем панель поиска на хедер
         headerPanel.add(setupSearchPanel());
+        // Добавляем горизонтальный промежуток между панелью поиска и панелью пользователя
         headerPanel.add(Box.createHorizontalStrut(20));
 
-        // Панель пользователя
+        // Создаем метку с именем пользователя (кликабельная)
         JLabel usernameLabel = new JLabel(username);
-        usernameLabel.setForeground(Color.BLUE);
-        usernameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        usernameLabel.setForeground(Color.BLUE); // Синий цвет текста (стиль ссылки)
+        usernameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Курсор "рука"
+
+        // Обработчик клика на имя пользователя (открывает профиль)
         usernameLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                openUserProfile(userId);
+                controller.openUserProfile(); // Открытие профиля пользователя через контроллер
             }
         });
 
+        // Создаем панель пользователя (имя пользователя)
         JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        userPanel.setBackground(Color.WHITE);
-        userPanel.add(usernameLabel);
+        userPanel.setBackground(Color.WHITE); // Белый фон панели
+        userPanel.add(usernameLabel);         // Добавляем имя пользователя на панель
 
+        // Добавляем панель пользователя в хедер
         headerPanel.add(userPanel);
 
+        // Устанавливаем отступ сверху для главной панели
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+        // Добавляем хедер в верхнюю часть основной панели
         mainPanel.add(headerPanel, BorderLayout.NORTH);
     }
 
+    // Метод настройки панели поиска заметок
     private JPanel setupSearchPanel() {
+        // Создаем текстовое поле для ввода поискового запроса
         JTextField searchField = new JTextField();
-        searchField.setForeground(Color.DARK_GRAY);
-        searchField.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        searchField.setForeground(Color.DARK_GRAY); // Цвет текста (темно-серый)
+        searchField.setFont(new Font("SansSerif", Font.PLAIN, 14)); // Шрифт текста
+
+        // Настраиваем границу текстового поля с внутренними отступами
         searchField.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(new Color(200, 200, 200), 1, true),
-                new EmptyBorder(5, 10, 5, 10)
+                new LineBorder(new Color(200, 200, 200), 1, true), // Внешняя рамка (светло-серая)
+                new EmptyBorder(5, 10, 5, 10) // Внутренний отступ (поля)
         ));
 
+        // Создаем кнопку поиска
         JButton searchButton = createStyledButton("Поиск");
-        searchButton.addActionListener(e -> searchNotes(searchField.getText()));
+        // Добавляем обработчик нажатия кнопки поиска через контроллер
+        searchButton.addActionListener(e -> controller.searchNotes(searchField.getText()));
 
+        // Создаем панель поиска с компоновкой BorderLayout
         JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBackground(Color.WHITE);
-        panel.add(searchField, BorderLayout.CENTER);
-        panel.add(searchButton, BorderLayout.EAST);
+        panel.setBackground(Color.WHITE); // Белый фон панели
+        panel.add(searchField, BorderLayout.CENTER); // Поле поиска занимает центр
+        panel.add(searchButton, BorderLayout.EAST);  // Кнопка поиска справа
 
-        // Добавляем отступ сразу к главной панели
+        // Добавляем отступ к левой стороне панели
         panel.setBorder(new EmptyBorder(0, 20, 0, 0));
-        return panel;
+        return panel; // Возвращаем настроенную панель поиска
     }
 
     private void setupNotesPanel() {
         notesPanel = new JPanel();
         notesPanel.setLayout(new BoxLayout(notesPanel, BoxLayout.Y_AXIS));
         notesPanel.setBackground(Color.WHITE);
+    }
+
+    private JPanel createNotesContainer() {
+        // Заголовок "ЗАМЕТКИ"
+        JLabel titleLabel = new JLabel("ЗАМЕТКИ", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        titleLabel.setForeground(Color.DARK_GRAY);
+
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        titlePanel.setBackground(Color.WHITE);
+        titlePanel.add(titleLabel);
 
         JScrollPane scrollPane = new JScrollPane(notesPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
@@ -117,27 +185,8 @@ public class MainWindow extends JFrame {
                 g.setColor(Color.WHITE);
                 g.fillRect(r.x, r.y, r.width, r.height);
             }
-
-            @Override
-            protected JButton createDecreaseButton(int orientation) {
-                return new JButton();
-            }
-
-            @Override
-            protected JButton createIncreaseButton(int orientation) {
-                return new JButton();
-            }
         });
         scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(15, Integer.MAX_VALUE));
-
-        // Заголовок "ЗАМЕТКИ"
-        JLabel titleLabel = new JLabel("ЗАМЕТКИ", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        titleLabel.setForeground(Color.DARK_GRAY);
-
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        titlePanel.setBackground(Color.WHITE);
-        titlePanel.add(titleLabel);
 
         // Основной контейнер
         JPanel notesContainer = new JPanel(new BorderLayout());
@@ -145,59 +194,63 @@ public class MainWindow extends JFrame {
         notesContainer.add(titlePanel, BorderLayout.NORTH);
         notesContainer.add(scrollPane, BorderLayout.CENTER);
 
-        // Кнопка добавления заметки
-        JButton addNoteButton = createStyledButton("Добавить заметку");
-        addNoteButton.addActionListener(e -> openAddNoteDialog());
-
-        JPanel addButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        addButtonPanel.setBackground(Color.WHITE);
-        addButtonPanel.add(addNoteButton);
-
-        mainPanel.add(notesContainer, BorderLayout.CENTER);
-        mainPanel.add(addButtonPanel, BorderLayout.SOUTH);
+        return notesContainer;
     }
 
+    // Метод настройки слушателя изменения размеров окна
     private void setupResizeListener() {
+        // Добавляем слушатель на изменение размеров окна
         addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
+                // Проверяем, не выполняется ли уже процесс изменения размера
                 if (!isResizing) {
-                    isResizing = true;
+                    isResizing = true; // Флаг предотвращает повторные вызовы
+
+                    // Отложенная перезагрузка заметок после изменения размера
                     SwingUtilities.invokeLater(() -> {
-                        loadNotes();
-                        isResizing = false;
+                        controller.loadNotes();    // Перезагружаем заметки с учетом нового размера окна
+                        isResizing = false; // Снимаем флаг после завершения
                     });
                 }
             }
         });
     }
 
-    private void openUserProfile(int userId) {
+    // Метод для создания диалогового окна профиля пользователя
+    public JDialog createProfileDialog() {
+        // Создаем диалоговое окно с заголовком и модальностью (блокирует основное окно)
         JDialog profileDialog = new JDialog(this, "Профиль пользователя", true);
-        profileDialog.setResizable(true);  // Окно теперь будет изменяемым
-        profileDialog.setLocationRelativeTo(this);
+        profileDialog.setResizable(true);            // Позволяем изменять размер окна профиля
+        profileDialog.setLocationRelativeTo(this);  // Центрируем окно относительно главного окна
 
+        // Создаем панель для содержимого профиля с вертикальным расположением элементов
         JPanel profilePanel = new JPanel();
         profilePanel.setLayout(new BoxLayout(profilePanel, BoxLayout.Y_AXIS));
-        profilePanel.setBackground(Color.WHITE);
-        profilePanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        profilePanel.setBackground(Color.WHITE);     // Белый фон панели
+        profilePanel.setBorder(new EmptyBorder(20, 20, 20, 20)); // Отступы вокруг содержимого
 
-        JLabel userLabel = new JLabel("Ник: " + username);
+        // Метка с ником пользователя, выравнена по центру
+        JLabel userLabel = new JLabel("Ник: " + controller.getUsername());
         userLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
         userLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel emailLabel = new JLabel("Почта: " + email);
+        // Метка с email пользователя, выравнена по центру
+        JLabel emailLabel = new JLabel("Почта: " + controller.getEmail());
         emailLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
         emailLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Кнопка "Закрыть" для закрытия окна профиля
         JButton closeButton = createStyledButton("Закрыть");
         closeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         closeButton.addActionListener(e -> profileDialog.dispose());
 
+        // Кнопка "Выйти из аккаунта" с подтверждением выхода
         JButton logoutButton = createStyledButton("Выйти из аккаунта");
         logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        logoutButton.addActionListener(e -> showExitConfirmation(profileDialog));
+        logoutButton.addActionListener(e -> controller.showExitConfirmation(profileDialog));
 
+        // Добавляем компоненты на панель с отступами между ними
         profilePanel.add(userLabel);
         profilePanel.add(Box.createVerticalStrut(10));
         profilePanel.add(emailLabel);
@@ -206,12 +259,15 @@ public class MainWindow extends JFrame {
         profilePanel.add(Box.createVerticalStrut(10));
         profilePanel.add(logoutButton);
 
+        // Добавляем панель в диалоговое окно
         profileDialog.add(profilePanel);
-        profileDialog.pack();  // Используем pack() для автоматического подбора размеров
-        profileDialog.setVisible(true);
+        profileDialog.pack();           // Автоматический подбор размеров окна под содержимое
+
+        return profileDialog;
     }
 
-    private void showExitConfirmation(JDialog parentDialog) {
+    // Метод для создания диалогового окна подтверждения выхода
+    public JDialog createExitConfirmationDialog(JDialog parentDialog) {
         JDialog confirmDialog = new JDialog(parentDialog, "Подтверждение выхода", true);
         confirmDialog.setSize(400, 150);
         confirmDialog.setLocationRelativeTo(parentDialog);
@@ -230,18 +286,13 @@ public class MainWindow extends JFrame {
         mainPanel.add(Box.createVerticalStrut(10));
         mainPanel.add(buttonPanel);
 
-        buttonPanel.add(createStyledButton("Да", e -> {
-            confirmDialog.dispose();
-            parentDialog.dispose();
-            dispose();
-            new LoginWindow();
-        }));
+        buttonPanel.add(createStyledButton("Да", e -> controller.logout(parentDialog)));
         buttonPanel.add(createStyledButton("Нет", e -> confirmDialog.dispose()));
 
-        confirmDialog.setVisible(true);
+        return confirmDialog;
     }
 
-    // Вспомогательный метод для создания кнопки
+    // Вспомогательный метод для создания кнопки с обработчиком
     private JButton createStyledButton(String text, ActionListener action) {
         JButton button = createStyledButton(text);
         button.addActionListener(action);
@@ -273,106 +324,123 @@ public class MainWindow extends JFrame {
         return button;
     }
 
-    private void loadNotes() {
-        try {
-            List<Note> notes = DatabaseHandler.getNotes(userId);
-            notesPanel.removeAll();
+    // Метод для отображения заметок в интерфейсе
+    public void displayNotes(List<Note> notes) {
+        // Очищаем панель с заметками перед новой отрисовкой
+        notesPanel.removeAll();
 
-            if (notes.isEmpty()) {
-                JPanel messagePanel = new JPanel();
-                messagePanel.setBackground(Color.WHITE);
-                JLabel noResultsLabel = new JLabel("Заметок пока нет... \uD83D\uDE22");
-                noResultsLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                noResultsLabel.setForeground(Color.GRAY);
+        // Если заметок нет, показываем сообщение об отсутствии заметок
+        if (notes.isEmpty()) {
+            JPanel messagePanel = new JPanel();
+            messagePanel.setBackground(Color.WHITE);
 
-                messagePanel.add(noResultsLabel);
-                messagePanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-                notesPanel.add(messagePanel);
-            } else {
-                JPanel gridPanel = new JPanel();
-                gridPanel.setLayout(new GridBagLayout());
-                gridPanel.setBackground(Color.WHITE);
-                GridBagConstraints gbc = new GridBagConstraints();
+            JLabel noResultsLabel = new JLabel("Заметок пока нет... \uD83D\uDE22"); // Сообщение с эмодзи
+            noResultsLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            noResultsLabel.setForeground(Color.GRAY);
 
-                int cardWidth = 730;
-                int cardHeight = 200;
+            messagePanel.add(noResultsLabel);
+            messagePanel.setLayout(new FlowLayout(FlowLayout.CENTER)); // Центрируем сообщение
+            notesPanel.add(messagePanel);
 
-                for (int i = 0; i < notes.size(); i++) {
-                    Note note = notes.get(i);
-                    JPanel noteCard = new JPanel(new BorderLayout(5, 5));
-                    noteCard.setBackground(new Color(250, 250, 250));
-                    noteCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                    noteCard.addMouseListener(new MouseAdapter() {
-                        @Override
-                        public void mouseClicked(MouseEvent e) {
-                            openNote(note);
-                        }
-                    });
+        } else {
+            // Если заметки есть, создаем сетку для их отображения
+            JPanel gridPanel = new JPanel();
+            gridPanel.setLayout(new GridBagLayout()); // Используем GridBagLayout для сетки карточек
+            gridPanel.setBackground(Color.WHITE);
+            GridBagConstraints gbc = new GridBagConstraints();
 
-                    noteCard.setPreferredSize(new Dimension(cardWidth, cardHeight));
-                    noteCard.setMaximumSize(new Dimension(cardWidth, cardHeight));
-                    noteCard.setMinimumSize(new Dimension(cardWidth, cardHeight));
+            int cardWidth = 530;  // Ширина каждой карточки заметки
+            int cardHeight = 200; // Высота каждой карточки заметки
 
-                    noteCard.setBorder(BorderFactory.createCompoundBorder(
-                            new LineBorder(new Color(220, 220, 220), 1, false),
-                            new EmptyBorder(10, 10, 10, 10)
-                    ));
+            // Проходим по всем заметкам и создаем для каждой карточку
+            for (int i = 0; i < notes.size(); i++) {
+                Note note = notes.get(i);
 
-                    // Заголовок + тип + время создания
-                    JLabel titleLabel = new JLabel(
-                            "<html><b>" + note.getTitle() + "</b> (" + note.getNoteType() + ")<br><i>" +
-                                    "Создано: " + note.getCreatedAt() + "</i></html>"
-                    );
-                    titleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                    titleLabel.setForeground(Color.DARK_GRAY);
-                    noteCard.add(titleLabel, BorderLayout.NORTH);
+                // Панель карточки заметки с BorderLayout
+                JPanel noteCard = new JPanel(new BorderLayout(5, 5));
+                noteCard.setBackground(new Color(250, 250, 250)); // Светлый фон карточки
+                noteCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // Курсор "рука" при наведении
 
-                    JTextArea contentArea = new JTextArea(note.getContent());
-                    contentArea.setEditable(false);
-                    contentArea.setWrapStyleWord(true);
-                    contentArea.setLineWrap(true);
-                    contentArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                    contentArea.setForeground(Color.DARK_GRAY);
-                    contentArea.setBackground(new Color(250, 250, 250));
-                    contentArea.setBorder(null);
-                    noteCard.add(contentArea, BorderLayout.CENTER);
+                // Открываем заметку по клику на карточку через контроллер
+                noteCard.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        controller.openNote(note);
+                    }
+                });
 
-                    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-                    buttonPanel.setBackground(new Color(250, 250, 250));
+                // Фиксируем размеры карточки
+                noteCard.setPreferredSize(new Dimension(cardWidth, cardHeight));
+                noteCard.setMaximumSize(new Dimension(cardWidth, cardHeight));
+                noteCard.setMinimumSize(new Dimension(cardWidth, cardHeight));
 
-                    JButton editButton = createStyledButton("Редактировать");
-                    editButton.addActionListener(e -> openNote(note));
-                    JButton deleteButton = createStyledButton("Удалить");
-                    deleteButton.addActionListener(e -> deleteNote(note));
-                    buttonPanel.add(editButton);
-                    buttonPanel.add(deleteButton);
-                    noteCard.add(buttonPanel, BorderLayout.SOUTH);
+                // Добавляем рамку с отступом вокруг карточки
+                noteCard.setBorder(BorderFactory.createCompoundBorder(
+                        new LineBorder(new Color(220, 220, 220), 1, false),
+                        new EmptyBorder(10, 10, 10, 10)
+                ));
 
-                    int row = i / 2;
-                    int col = i % 2;
+                // Заголовок заметки: жирный заголовок, тип заметки и дата создания
+                JLabel titleLabel = new JLabel(
+                        "<html><b>" + note.getTitle() + "</b> (" + note.getNoteType() + ")<br><i>" +
+                                "Создано: " + note.getCreatedAt() + "</i></html>"
+                );
+                titleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                titleLabel.setForeground(Color.DARK_GRAY);
+                noteCard.add(titleLabel, BorderLayout.NORTH);
 
-                    gbc.gridx = col;
-                    gbc.gridy = row;
-                    gbc.insets = new Insets(10, 10, 10, 10);
+                // Текстовое поле с содержимым заметки (не редактируемое)
+                JTextArea contentArea = new JTextArea(note.getContent());
+                contentArea.setEditable(false);
+                contentArea.setWrapStyleWord(true); // Перенос слов
+                contentArea.setLineWrap(true);      // Перенос строк
+                contentArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                contentArea.setForeground(Color.DARK_GRAY);
+                contentArea.setBackground(new Color(250, 250, 250)); // Фон совпадает с карточкой
+                contentArea.setBorder(null);
+                noteCard.add(contentArea, BorderLayout.CENTER);
 
-                    gridPanel.add(noteCard, gbc);
-                    noteCard.setFocusable(false);
-                    contentArea.setFocusable(false);
-                }
+                // Панель кнопок "Редактировать" и "Удалить"
+                JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+                buttonPanel.setBackground(new Color(250, 250, 250));
 
-                notesPanel.setLayout(new BorderLayout());
-                notesPanel.add(gridPanel, BorderLayout.CENTER);
+                JButton editButton = createStyledButton("Редактировать");
+                editButton.addActionListener(e -> controller.openNote(note));
+
+                JButton deleteButton = createStyledButton("Удалить");
+                deleteButton.addActionListener(e -> controller.deleteNote(note));
+
+                buttonPanel.add(editButton);
+                buttonPanel.add(deleteButton);
+                noteCard.add(buttonPanel, BorderLayout.SOUTH);
+
+                // Расчет положения карточки в сетке (2 колонки)
+                int row = i / 2;
+                int col = i % 2;
+
+                gbc.gridx = col;
+                gbc.gridy = row;
+                gbc.insets = new Insets(10, 10, 10, 10); // Отступы между карточками
+
+                gridPanel.add(noteCard, gbc);
+
+                // Отключаем фокусировку на карточках и тексте (для удобства UI)
+                noteCard.setFocusable(false);
+                contentArea.setFocusable(false);
             }
 
-            notesPanel.revalidate();
-            notesPanel.repaint();
-
-        } catch (Exception e) {
-            e.printStackTrace();
+            // Устанавливаем layout и добавляем сетку в основную панель заметок
+            notesPanel.setLayout(new BorderLayout());
+            notesPanel.add(gridPanel, BorderLayout.CENTER);
         }
+
+        // Обновляем UI после изменений
+        notesPanel.revalidate();
+        notesPanel.repaint();
     }
 
-    private void openNote(Note note) {
+    // Метод для создания окна редактирования заметки
+    public JFrame createNoteEditorFrame(Note note) {
         JFrame noteFrame = new JFrame("Редактор");
         noteFrame.setSize(600, 400);
         noteFrame.setLocationRelativeTo(this);
@@ -397,7 +465,7 @@ public class MainWindow extends JFrame {
         inputPanel.add(new JScrollPane(contentArea));
 
         JButton saveButton = createStyledButton("Сохранить");
-        saveButton.addActionListener(e -> saveNote(note, titleField.getText(), contentArea.getText(), (String) typeComboBox.getSelectedItem(), noteFrame));
+        saveButton.addActionListener(e -> controller.saveNote(note, titleField.getText(), contentArea.getText(), (String) typeComboBox.getSelectedItem(), noteFrame));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(Color.WHITE);
@@ -405,7 +473,8 @@ public class MainWindow extends JFrame {
 
         notePanel.add(inputPanel, BorderLayout.CENTER);
         notePanel.add(buttonPanel, BorderLayout.SOUTH);
-        noteFrame.setVisible(true);
+
+        return noteFrame;
     }
 
     // Вспомогательный метод для создания текстового поля
@@ -437,160 +506,14 @@ public class MainWindow extends JFrame {
                 NoteType.ЛИЧНАЯ.name(),
                 NoteType.РАБОЧАЯ.name(),
                 NoteType.ИДЕЯ.name(),
-                NoteType.НАПОМИНАНИЕ.name(),
                 NoteType.ЗАДАЧА.name()
         });
         comboBox.setSelectedItem(selectedType);
         return comboBox;
     }
 
-    // Вспомогательный метод для сохранения заметки
-    private void saveNote(Note note, String title, String content, String noteType, JFrame frame) {
-        try {
-            if (title.isEmpty() || content.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Заголовок и содержание не могут быть пустыми!");
-                return;
-            }
-            DatabaseHandler.updateNote(note.getId(), title.trim(), content.trim(), noteType);
-            JOptionPane.showMessageDialog(this, "Заметка сохранена!");
-            loadNotes();
-            frame.dispose();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Ошибка при сохранении заметки");
-            ex.printStackTrace();
-        }
-    }
-
-    private void searchNotes(String query) {
-        SwingWorker<List<Note>, Void> searchWorker = new SwingWorker<>() {
-            @Override
-            protected List<Note> doInBackground() throws Exception {
-                return DatabaseHandler.searchNotes(userId, query);
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    List<Note> notes = get();
-                    notesPanel.removeAll();  // Очищаем панель перед добавлением новых данных
-
-                    if (notes.isEmpty()) {
-                        JPanel messagePanel = new JPanel();
-                        messagePanel.setBackground(Color.WHITE);
-                        JLabel noResultsLabel = new JLabel("Заметки не найдены");
-                        noResultsLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                        noResultsLabel.setForeground(Color.GRAY);
-
-                        messagePanel.add(noResultsLabel);
-                        messagePanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-                        notesPanel.add(messagePanel);
-                    } else {
-                        JPanel gridPanel = new JPanel();
-                        gridPanel.setLayout(new GridBagLayout());
-                        gridPanel.setBackground(Color.WHITE);
-                        GridBagConstraints gbc = new GridBagConstraints();
-
-                        int cardWidth = 730;
-                        int cardHeight = 200;
-
-                        for (int i = 0; i < notes.size(); i++) {
-                            Note note = notes.get(i);
-                            JPanel noteCard = new JPanel(new BorderLayout(5, 5));
-                            noteCard.setBackground(new Color(250, 250, 250));
-                            noteCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                            noteCard.addMouseListener(new MouseAdapter() {
-                                @Override
-                                public void mouseClicked(MouseEvent e) {
-                                    openNote(note);
-                                }
-                            });
-
-                            noteCard.setPreferredSize(new Dimension(cardWidth, cardHeight));
-                            noteCard.setMaximumSize(new Dimension(cardWidth, cardHeight));
-                            noteCard.setMinimumSize(new Dimension(cardWidth, cardHeight));
-
-                            noteCard.setBorder(BorderFactory.createCompoundBorder(
-                                    new LineBorder(new Color(220, 220, 220), 1, false),
-                                    new EmptyBorder(10, 10, 10, 10)
-                            ));
-
-                            // Заголовок + тип + время создания
-                            JLabel titleLabel = new JLabel(
-                                    "<html><b>" + note.getTitle() + "</b> (" + note.getNoteType() + ")<br><i>" +
-                                            "Создано: " + note.getCreatedAt() + "</i></html>"
-                            );
-                            titleLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                            titleLabel.setForeground(Color.DARK_GRAY);
-                            noteCard.add(titleLabel, BorderLayout.NORTH);
-
-                            JTextArea contentArea = new JTextArea(note.getContent());
-                            contentArea.setEditable(false);
-                            contentArea.setWrapStyleWord(true);
-                            contentArea.setLineWrap(true);
-                            contentArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-                            contentArea.setForeground(Color.DARK_GRAY);
-                            contentArea.setBackground(new Color(250, 250, 250));
-                            contentArea.setBorder(null);
-                            noteCard.add(contentArea, BorderLayout.CENTER);
-
-                            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-                            buttonPanel.setBackground(new Color(250, 250, 250));
-
-                            JButton editButton = createStyledButton("Редактировать");
-                            editButton.addActionListener(e -> openNote(note));
-                            JButton deleteButton = createStyledButton("Удалить");
-                            deleteButton.addActionListener(e -> deleteNote(note));
-                            buttonPanel.add(editButton);
-                            buttonPanel.add(deleteButton);
-                            noteCard.add(buttonPanel, BorderLayout.SOUTH);
-
-                            int row = i / 2;
-                            int col = i % 2;
-
-                            gbc.gridx = col;
-                            gbc.gridy = row;
-                            gbc.insets = new Insets(10, 10, 10, 10);
-
-                            gridPanel.add(noteCard, gbc);
-                            noteCard.setFocusable(false);
-                            contentArea.setFocusable(false);
-                        }
-
-                        notesPanel.setLayout(new BorderLayout());
-                        notesPanel.add(gridPanel, BorderLayout.CENTER);
-                    }
-
-                    SwingUtilities.invokeLater(() -> {
-                        notesPanel.revalidate();  // Обновляем панель
-                        notesPanel.repaint();     // Рисуем заново
-                    });
-
-                } catch (Exception e) {
-                    e.printStackTrace();  // Не выводим стек вызовов в консоль
-                }
-            }
-        };
-        searchWorker.execute();
-    }
-
-    // Удаление заметки
-    private void deleteNote(Note note) {
-        int confirmation = JOptionPane.showConfirmDialog(this, "Вы уверены, что хотите удалить эту заметку?", "Удалить заметку", JOptionPane.YES_NO_OPTION);
-        if (confirmation == JOptionPane.YES_OPTION) {
-            try {
-                DatabaseHandler.deleteNote(note.getId());
-                loadNotes();  // Загружаем обновленные заметки после удаления
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        notesPanel.revalidate();  // Обновляем панель
-        notesPanel.repaint();     // Перерисовка панели
-    }
-
-
-    // Диалог для добавления новой заметки
-    private void openAddNoteDialog() {
+    // Метод для создания диалога добавления новой заметки
+    public JDialog createAddNoteDialog() {
         JDialog dialog = new JDialog(this, "Добавить заметку", true);
         dialog.setSize(500, 400);
         dialog.setLocationRelativeTo(this);
@@ -625,7 +548,6 @@ public class MainWindow extends JFrame {
         typeComboBox.addItem(NoteType.ЛИЧНАЯ.name());
         typeComboBox.addItem(NoteType.РАБОЧАЯ.name());
         typeComboBox.addItem(NoteType.ИДЕЯ.name());
-        typeComboBox.addItem(NoteType.НАПОМИНАНИЕ.name());
         typeComboBox.addItem(NoteType.ЗАДАЧА.name());
 
         inputPanel.add(typeLabel);
@@ -635,29 +557,16 @@ public class MainWindow extends JFrame {
 
         JButton saveButton = createStyledButton("Сохранить");
         saveButton.addActionListener(e -> {
-            try {
-                String title = titleField.getText().trim();
-                String content = contentArea.getText().trim();
-                String noteType = (String) typeComboBox.getSelectedItem();
-
-                if (title.isEmpty() || content.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Заголовок и содержание не могут быть пустыми!");
-                    return;
-                }
-
-                DatabaseHandler.addNote(userId, title, content, noteType);  // Передаем тип заметки
-                JOptionPane.showMessageDialog(this, "Заметка добавлена!");
-                loadNotes();
-                dialog.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Ошибка при добавлении заметки ");
-                ex.printStackTrace();
-            }
+            String title = titleField.getText().trim();
+            String content = contentArea.getText().trim();
+            String noteType = (String) typeComboBox.getSelectedItem();
+            controller.addNote(title, content, noteType);
+            dialog.dispose();
         });
 
         dialogPanel.add(saveButton, BorderLayout.SOUTH);
         dialog.add(dialogPanel);
-        dialog.setVisible(true);
-    }
 
+        return dialog;
+    }
 }

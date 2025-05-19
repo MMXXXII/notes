@@ -10,9 +10,16 @@ public class DatabaseHandler {
     private static final String USER = "postgres";
     private static final String PASSWORD = "admin";
 
-    public static Connection getConnection() throws SQLException, ClassNotFoundException {
-        Class.forName("org.postgresql.Driver");
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+    // Подключение к базе данных
+    public static Connection getConnection() {
+        try {
+            Class.forName("org.postgresql.Driver");
+            return DriverManager.getConnection(URL, USER, PASSWORD);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Драйвер базы данных не найден.", e);
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка подключения к базе данных.", e);
+        }
     }
 
     public static String hashPassword(String password) {
@@ -56,19 +63,30 @@ public class DatabaseHandler {
         }
     }
 
-    public static List<Note> getNotes(int userId) throws SQLException, ClassNotFoundException {
+    public static List<Note> getNotes(int userId) throws SQLException {
         List<Note> notes = new ArrayList<>();
+        String query = "SELECT * FROM notes WHERE user_id = ? AND (is_deleted = FALSE OR is_deleted IS NULL) ORDER BY created_at DESC";
+
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM notes WHERE user_id = ?")) {
-            stmt.setInt(1, userId);
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                notes.add(new Note(
-                        rs.getInt("id"), userId, rs.getString("title"),
-                        rs.getString("content"), rs.getTimestamp("created_at"),
-                        rs.getString("note_type")));
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, userId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Note note = new Note(
+                            rs.getInt("id"),
+                            rs.getInt("user_id"),
+                            rs.getString("title"),
+                            rs.getString("content"),
+                            rs.getString("note_type"),
+                            rs.getTimestamp("created_at").toString()
+                    );
+                    notes.add(note);
+                }
             }
         }
+
         return notes;
     }
 
@@ -84,29 +102,141 @@ public class DatabaseHandler {
         }
     }
 
-    public static void deleteNote(int noteId) throws SQLException, ClassNotFoundException {
+    // Обновите существующий метод deleteNote
+    public static void deleteNote(int noteId) throws SQLException {
+        // Вместо удаления, перемещаем заметку в корзину
+        moveNoteToTrash(noteId);
+    }
+
+    public static List<Note> searchNotes(int userId, String query) throws SQLException {
+        List<Note> notes = new ArrayList<>();
+        String sql = "SELECT * FROM notes WHERE user_id = ? AND (is_deleted = FALSE OR is_deleted IS NULL) AND " +
+                "(LOWER(title) LIKE LOWER(?) OR LOWER(content) LIKE LOWER(?)) ORDER BY created_at DESC";
+
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement("DELETE FROM notes WHERE id = ?")) {
-            stmt.setInt(1, noteId);
-            stmt.executeUpdate();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, "%" + query + "%");
+            pstmt.setString(3, "%" + query + "%");
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Note note = new Note(
+                            rs.getInt("id"),
+                            rs.getInt("user_id"),
+                            rs.getString("title"),
+                            rs.getString("content"),
+                            rs.getString("note_type"),
+                            rs.getTimestamp("created_at").toString()
+                    );
+                    notes.add(note);
+                }
+            }
+        }
+
+        return notes;
+    }
+
+    // Добавьте новые методы для работы с корзиной
+    public static void moveNoteToTrash(int noteId) throws SQLException {
+        String query = "UPDATE notes SET is_deleted = TRUE, deleted_at = ? WHERE id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            // Текущее время как время удаления
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            pstmt.setTimestamp(1, now);
+            pstmt.setInt(2, noteId);
+
+            pstmt.executeUpdate();
         }
     }
 
-    public static List<Note> searchNotes(int userId, String query) throws SQLException, ClassNotFoundException {
-        List<Note> notes = new ArrayList<>();
+    public static void restoreNoteFromTrash(int noteId) throws SQLException {
+        String query = "UPDATE notes SET is_deleted = FALSE, deleted_at = NULL WHERE id = ?";
+
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     "SELECT * FROM notes WHERE user_id = ? AND title LIKE ?")) {
-            stmt.setInt(1, userId);
-            stmt.setString(2, query + "%");
-            ResultSet rs = stmt.executeQuery();
-            while (rs.next()) {
-                notes.add(new Note(
-                        rs.getInt("id"), userId, rs.getString("title"),
-                        rs.getString("content"), rs.getTimestamp("created_at"),
-                        rs.getString("note_type")));
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, noteId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void permanentlyDeleteNote(int noteId) throws SQLException {
+        String query = "DELETE FROM notes WHERE id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, noteId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void emptyTrash(int userId) throws SQLException {
+        String query = "DELETE FROM notes WHERE user_id = ? AND is_deleted = TRUE";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static List<Note> getTrashNotes(int userId) throws SQLException {
+        List<Note> trashNotes = new ArrayList<>();
+        String query = "SELECT * FROM notes WHERE user_id = ? AND is_deleted = TRUE ORDER BY deleted_at DESC";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, userId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Note note = new Note(
+                            rs.getInt("id"),
+                            rs.getInt("user_id"),
+                            rs.getString("title"),
+                            rs.getString("content"),
+                            rs.getString("note_type"),
+                            rs.getTimestamp("created_at").toString()
+                    );
+
+                    // Добавляем информацию о времени удаления
+                    if (rs.getTimestamp("deleted_at") != null) {
+                        note.setDeletedAt(rs.getTimestamp("deleted_at").toString());
+                    }
+                    note.setDeleted(true);
+                    trashNotes.add(note);
+                }
             }
         }
-        return notes;
+
+        return trashNotes;
+    }
+
+    // Метод для получения количества дней, прошедших с момента удаления
+    public static int getDaysSinceDeletion(String deletedAtStr) {
+        try {
+            // Преобразуем строку времени удаления в Timestamp
+            Timestamp deletedAt = Timestamp.valueOf(deletedAtStr);
+
+            // Получаем текущее время
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+
+            // Вычисляем разницу в миллисекундах
+            long diffInMillis = now.getTime() - deletedAt.getTime();
+
+            // Преобразуем миллисекунды в дни
+            return (int) (diffInMillis / (1000 * 60 * 60 * 24));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 }
