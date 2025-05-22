@@ -1,39 +1,46 @@
-package org.example;
+package org.example; // Указываем, что класс принадлежит пакету org.example
 
+// Импортируем исключение SQL и коллекции
 import java.sql.SQLException;
 import java.util.List;
 
+// Класс для управления корзиной в главном окне приложения
 public class MainWindowControllerTrash {
+    // Ссылка на основной контроллер главного окна
     private MainWindowController controller;
 
+    // Конструктор: получаем ссылку на основной контроллер
     public MainWindowControllerTrash(MainWindowController controller) {
         this.controller = controller;
     }
 
-    // Открыть диалог корзины
+    // Метод для открытия окна с удалёнными заметками (корзины)
     public void openTrashDialog() {
+        // Создаём диалоговое окно корзины, передаём в него представление и контроллер
         TrashDialog dialog = new TrashDialog(controller.getView(), controller);
-        dialog.setVisible(true);
+        dialog.setVisible(true); // Показываем диалог
     }
 
-    // Получить удаленные заметки
+    // Метод для получения списка удалённых заметок из базы данных
     public List<Note> getTrashNotes() throws SQLException {
+        // Вызываем соответствующий метод у обработчика базы данных
         return DatabaseHandlerTrash.getTrashNotes(controller.getUserId());
     }
 
-    // Восстановить заметку из корзины
+    // Метод для восстановления заметки из корзины по её ID
     public void restoreNoteFromTrash(int noteId) throws SQLException {
+        // Восстанавливаем заметку
         DatabaseHandlerTrash.restoreNoteFromTrash(noteId);
-        controller.loadNotes(); // Обновляем список заметок
+        controller.loadNotes(); // Обновляем список заметок в интерфейсе
     }
 
-    // Окончательно удалить заметку
+    // Метод для полного удаления заметки из корзины по её ID
     public void permanentlyDeleteNote(int noteId) throws SQLException {
-        DatabaseHandlerTrash.permanentlyDeleteNote(noteId);
+        DatabaseHandlerTrash.permanentlyDeleteNote(noteId); // Удаляем из базы
     }
 
-    // Очистить корзину
+    // Метод для полной очистки корзины пользователя
     public void emptyTrash() throws SQLException {
-        DatabaseHandlerTrash.emptyTrash(controller.getUserId());
+        DatabaseHandlerTrash.emptyTrash(controller.getUserId()); // Удаляем все удалённые заметки пользователя
     }
 }
